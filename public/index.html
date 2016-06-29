@@ -1,0 +1,146 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <!--  <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Tangerine:bold,bolditalic|Inconsolata|Droid+Sans|Source+Sans+Pro:normal,bold,italic"> -->
+    
+    <style type="text/css">
+      @font-face {
+      font-family:'Inconsolata';
+      src : font-url('font/Inconsolata-Regular.ttf') format('truetype');
+      font-weight : normal;
+      font-style : normal;
+      }
+
+      * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Arial'; font-weight:normal;font-style:normal;}
+
+      body { font-size: 16px ;     background-color: #d7d7d7; }
+      form {
+      padding: 0px; position: fixed; bottom: 0; width: 100%;    
+      bottom: 10px; text-align:center;  
+
+      }
+      .enterChat form  { border: 0; padding: 10px;   top: 20px; height:60px;  text-align:center;  position: relative;}
+
+      form input { border: 0; padding: 10px; width: 85%;  margin:auto; border: 1px solid black;}
+
+      .enterChat form input { width: 50%; position: relative; }
+      form button {     width: 15%; background: #717174; padding: 10px; border: 1px solid #717174;}
+      .enterChat form button { width: 100px; }
+      #messages { list-style-type: none; margin: 0; padding: 0; }
+      #messages li { padding: 5px 10px; width: 45%; word-wrap: break-word; border-radius : 10px; clear:both;}
+      #messages li:nth-child(odd) { background: #eee; }
+       #messages li:nth-child(even) { background: #c7c6c6; }
+      .chat {
+      display: none ;
+      }
+       #messages li.status{
+        width:100%; text-align: center; border-radius:0px; background:none; color: #3b90af;
+       }
+      li{}
+      li span {     color: #485791; font-weight: bold;}
+      .align-right {  float : right}
+      .align-left {  float:left;}
+      @media screen and (max-width: 320px) {
+      .chat form input{ width: 100%; }
+      .chat form button { width : 80px; }
+      } 
+    </style>
+  </head>
+  <body>
+
+  <div class= 'enterChat'>
+      <h1 style = 'text-align : center'>Welcome to the World of Chatting!</h1>
+      <h3 style = 'text-align : center'> Enter your nickname </h3>
+      <form action="">
+        <input type="text"  min='3'/> <br/><br/><button type='submit'>Submit</button>
+       
+      </form>
+    </div>
+
+    <div class= 'chat'>
+      <ul id="messages"></ul>
+      <form action="">
+        <input id="m" autocomplete="off" /><button type='submit'>Send</button>
+      </form>
+    </div>
+    
+    
+
+    <script type="text/javascript" src= '/socket.io/socket.io.js'></script>
+    <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+    <script>
+      var username = "";
+      var socket  = "";
+      var deferred = $.Deferred();
+
+      $('.chat form').submit(function(){
+        socket.emit("clientData" , {message : $('.chat input').val() , username : username});
+        $('.chat input').val('');
+        return false;
+      });
+
+      $('.enterChat form').submit(function(){ 
+       
+        username = $('.enterChat input').val();
+
+        //connecting to the chat room
+        socket = io();
+
+        deferred.resolve('success');
+       
+        $('.enterChat').hide();
+        $('.chat').show();
+
+        return false;
+      });
+
+      deferred.done(function(status){
+        
+           socket.on('serverResponse' , function(data){
+                if(data.username === username){
+                   if(!($('li:last').hasClass('status'))){
+                     if($('li span').last().html().indexOf(username) != -1){
+                        var text = $('li').last().html() +" "+data.message;
+                        $('li').last().html(text);
+                        return
+                     }
+                   }
+                   var child = '<li class="align-right">'+'<span>'+data.username + '</span>: '+ data.message+'</li>';
+                    $('#messages').append(child);
+                  
+                }else{
+                    if(!($('li:last').hasClass('status'))){
+                     if($('li span').last().html().indexOf(data.username) != -1){
+                        var text = $('li').last().html() +" "+data.message;
+                        $('li').last().html(text);
+                        return;
+                     }
+                   }
+                  var child = '<li class="align-left">'+'<span>'+data.username + '</span>: '+ data.message+'</li>';
+                  $('#messages').append(child);
+                }
+               
+              });
+
+            socket.on('clientStatus' , function(status){
+              
+                var child = '<li class="status">'+ username + " "+status+'</li>';
+                $('#messages').append(child);
+                socket.emit('broadcastOthers' , username);
+            });
+
+            socket.on('userStatus' , function(status){
+             
+               var child = '<li class="status">'+ status+'</li>';
+                $('#messages').append(child);
+            })
+      });
+     
+    </script>
+    
+
+  </body>
+</html>
+
+<!-- https://cdn.socket.io/socket.io-1.4.5.js -->
